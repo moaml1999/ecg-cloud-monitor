@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#07120f" />
+    <meta name="description" content="مراقبة مباشرة لإشارة ECG ومعدل ضربات القلب عبر EMQX Cloud" />
+    <title>ECG Cloud Monitor</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+
+    <main class="shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 48 48" role="img">
+              <path d="M4 25h9l4-10 7 21 6-17 4 6h10" />
+            </svg>
+          </div>
+          <div>
+            <p class="eyebrow">IOT ECG • LIVE</p>
+            <h1>مراقبة إشارة القلب</h1>
+          </div>
+        </div>
+
+        <div class="connection-pill" id="connectionPill" data-state="offline">
+          <span class="status-dot"></span>
+          <span id="connectionText">غير متصل</span>
+        </div>
+      </header>
+
+      <section class="hero-grid">
+        <article class="chart-card panel">
+          <div class="panel-header">
+            <div>
+              <p class="section-kicker">LIVE WAVEFORM</p>
+              <h2>تخطيط القلب الكهربائي</h2>
+            </div>
+            <div class="chart-actions">
+              <button class="icon-button" id="fullscreenButton" type="button" aria-label="تكبير المخطط" title="تكبير المخطط">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="chart-wrap" id="chartWrap">
+            <canvas id="ecgCanvas" aria-label="مخطط مباشر لإشارة ECG"></canvas>
+            <div class="chart-empty" id="chartEmpty">
+              <div class="mini-pulse" aria-hidden="true"></div>
+              <strong>بانتظار بيانات الإشارة</strong>
+              <span>اتصل بالخادم لبدء المراقبة</span>
+            </div>
+            <div class="chart-badge"><span></span> 250 Hz</div>
+          </div>
+
+          <div class="chart-footer">
+            <span>نافذة عرض: 4 ثوانٍ</span>
+            <span id="sampleCounter">0 عينة</span>
+          </div>
+        </article>
+
+        <aside class="metrics-column">
+          <article class="heart-card panel">
+            <div class="heart-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.7-7.5 1.1-1.1a5.5 5.5 0 0 0 0-7.8Z" /></svg>
+            </div>
+            <p class="section-kicker">HEART RATE</p>
+            <div class="bpm-row">
+              <strong id="bpmValue">--</strong>
+              <span>BPM</span>
+            </div>
+            <p class="metric-note" id="bpmNote">بانتظار أول نافذة قياس</p>
+          </article>
+
+          <article class="session-card panel">
+            <div class="panel-header compact">
+              <div>
+                <p class="section-kicker">SESSION</p>
+                <h2>جلسة القياس</h2>
+              </div>
+            </div>
+            <dl class="session-list">
+              <div><dt>حالة البث</dt><dd id="streamState">متوقف</dd></div>
+              <div><dt>آخر دفعة</dt><dd id="lastPacket">—</dd></div>
+              <div><dt>الدفعات</dt><dd id="packetCount">0</dd></div>
+              <div><dt>الخادم</dt><dd class="server-name">EMQX Europe</dd></div>
+            </dl>
+          </article>
+        </aside>
+      </section>
+
+      <section class="controls panel">
+        <div class="control-copy">
+          <p class="section-kicker">CONTROLS</p>
+          <h2>التحكم بالبث</h2>
+          <p>تُرسل بيانات ECG فقط أثناء تشغيل الجلسة لتقليل استهلاك الحصة السحابية.</p>
+        </div>
+        <div class="button-row">
+          <button class="button button-primary" id="connectButton" type="button">الاتصال بالخادم</button>
+          <button class="button button-start" id="startButton" type="button" disabled>
+            <span class="play-icon">▶</span> بدء القياس
+          </button>
+          <button class="button button-ghost" id="stopButton" type="button" disabled>إيقاف</button>
+        </div>
+      </section>
+
+      <footer>
+        <span>نظام تعليمي للمراقبة وليس جهازًا طبيًا للتشخيص.</span>
+        <span>اتصال مشفّر عبر WSS</span>
+      </footer>
+    </main>
+
+    <dialog class="login-dialog" id="loginDialog">
+      <form class="login-card" id="loginForm" method="dialog">
+        <button class="dialog-close" id="dialogClose" type="button" aria-label="إغلاق">×</button>
+        <div class="login-symbol" aria-hidden="true">
+          <svg viewBox="0 0 48 48"><path d="M4 25h9l4-10 7 21 6-17 4 6h10" /></svg>
+        </div>
+        <p class="section-kicker">SECURE CONNECTION</p>
+        <h2>الاتصال بخادم ECG</h2>
+        <p class="login-description">أدخل بيانات مستخدم العرض في EMQX. تبقى كلمة المرور في ذاكرة هذه الصفحة فقط ولا تُحفظ داخل الموقع.</p>
+
+        <label>
+          <span>اسم المستخدم</span>
+          <input id="usernameInput" name="username" value="iot-ecg-viewer" autocomplete="username" required />
+        </label>
+        <label>
+          <span>كلمة المرور</span>
+          <input id="passwordInput" name="password" type="password" autocomplete="current-password" required />
+        </label>
+
+        <p class="form-error" id="formError" role="alert"></p>
+        <button class="button button-primary button-wide" id="loginButton" type="submit">اتصال آمن</button>
+        <p class="broker-hint">k20a22ef.ala.eu-central-1.emqxsl.com</p>
+      </form>
+    </dialog>
+
+    <script src="https://unpkg.com/mqtt@5.14.1/dist/mqtt.min.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
+
