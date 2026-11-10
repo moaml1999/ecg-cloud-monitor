@@ -56,8 +56,10 @@
     if (!mqttClient?.connected) return;
     mqttClient.publish(TOPICS.control, value ? "start" : "stop", { qos: 0 });
     streaming = value;
-    ui.streamState.textContent = value ? "يعمل" : "متوقف";
-    ui.streamState.style.color = value ? "var(--green)" : "";
+    if (ui.streamState) {
+      ui.streamState.textContent = value ? "يعمل" : "متوقف";
+      ui.streamState.style.color = value ? "var(--green)" : "";
+    }
     ui.startButton.disabled = value;
     ui.stopButton.disabled = !value;
   }
@@ -122,7 +124,7 @@
     mqttClient.end(true);
     mqttClient = null;
     streaming = false;
-    ui.streamState.textContent = "متوقف";
+    if (ui.streamState) ui.streamState.textContent = "متوقف";
     setConnection("offline", "غير متصل");
   }
 
@@ -161,11 +163,13 @@
     if (samples.length > BUFFER_SIZE) samples.splice(0, samples.length - BUFFER_SIZE);
     packetCount += 1;
 
-    ui.packetCount.textContent = packetCount.toLocaleString("ar-IQ");
+    if (ui.packetCount) ui.packetCount.textContent = packetCount.toLocaleString("ar-IQ");
     ui.sampleCounter.textContent = `${samples.length.toLocaleString("ar-IQ")} عينة`;
-    ui.lastPacket.textContent = new Intl.DateTimeFormat("ar-IQ", {
-      hour: "2-digit", minute: "2-digit", second: "2-digit"
-    }).format(new Date());
+    if (ui.lastPacket) {
+      ui.lastPacket.textContent = new Intl.DateTimeFormat("ar-IQ", {
+        hour: "2-digit", minute: "2-digit", second: "2-digit"
+      }).format(new Date());
+    }
     ui.chartEmpty.classList.add("hidden");
     requestRender();
   }
