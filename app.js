@@ -54,7 +54,10 @@
 
   function setStreaming(value) {
     if (!mqttClient?.connected) return;
-    mqttClient.publish(TOPICS.control, value ? "start" : "stop", { qos: 0 });
+    mqttClient.publish(TOPICS.control, value ? "start" : "stop", {
+      qos: 0,
+      retain: true,
+    });
     streaming = value;
     if (ui.streamState) {
       ui.streamState.textContent = value ? "يعمل" : "متوقف";
@@ -120,7 +123,9 @@
 
   function disconnectBroker() {
     if (!mqttClient) return;
-    if (mqttClient.connected) mqttClient.publish(TOPICS.control, "stop", { qos: 0 });
+    if (mqttClient.connected) {
+      mqttClient.publish(TOPICS.control, "stop", { qos: 0, retain: true });
+    }
     mqttClient.end(true);
     mqttClient = null;
     streaming = false;
@@ -289,7 +294,9 @@
   window.addEventListener("resize", resizeCanvas);
   document.addEventListener("fullscreenchange", () => setTimeout(resizeCanvas, 60));
   window.addEventListener("beforeunload", () => {
-    if (mqttClient?.connected) mqttClient.publish(TOPICS.control, "stop", { qos: 0 });
+    if (mqttClient?.connected) {
+      mqttClient.publish(TOPICS.control, "stop", { qos: 0, retain: true });
+    }
   });
 
   setConnection("offline", "غير متصل");
